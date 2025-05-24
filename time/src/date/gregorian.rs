@@ -3,7 +3,7 @@ use crate::calendar::Calendar;
 
 pub struct GregorianDate {
     year: i128,
-    day: u16
+    day: u16,
 }
 
 impl Calendar for GregorianDate {
@@ -15,7 +15,10 @@ impl Calendar for GregorianDate {
     }
 
     fn from_standard(standard: &StandardCalendar) -> Self {
-        Self { year: standard.days / 365, day: (standard.days % 365) as u16 }
+        Self {
+            year: standard.days / 365,
+            day: (standard.days % 365) as u16,
+        }
     }
 
     fn day(&self) -> Self::Day {

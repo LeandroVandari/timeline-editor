@@ -1,7 +1,7 @@
 /// A standard reference calendar that counts the days from a reference date.
-/// 
+///
 /// Its purpose is as a "Rosetta Stone" to act as a man-in-the-middle between other [`Calendar`] conversions.
-/// 
+///
 /// The date chosen as _day 0_ was January 1st of year 1 in the [Gregorian Calendar](https://en.wikipedia.org/wiki/Gregorian_calendar).
 /// This choice was made because the Gregorian Calendar is the most widely used worldwide,
 /// and thus making conversions to and from that as cheap as possible makes sense.
@@ -18,23 +18,21 @@ impl StandardCalendar {
 }
 
 /// Trait that provides tools for general calendar management.
-/// 
+///
 /// This should be implemented by `date` types that adhere to some calendar's rules.
 /// The main aspect provided by this trait is conversion between arbitrary [`Calendar`]s.
-pub trait Calendar
-{
+pub trait Calendar {
     /// How this calendar expresses its months.
-    /// 
+    ///
     /// Usually, a [`u8`] is enough to represent all months, but one might also want an enum to represent that.
     type Month;
     /// How this calendar expresses its days (inside a month).
-    /// 
+    ///
     /// Usually, a [`u8`] is enough to represent the amount of dates in a month.
     type Day;
-    
+
     /// Converts a date from one calendar to another.
-    fn convert_to<T: Calendar>(&self) -> T
-    {
+    fn convert_to<T: Calendar>(&self) -> T {
         T::from_standard(&self.to_standard())
     }
 
@@ -51,7 +49,7 @@ pub trait Calendar
     fn year(&self) -> super::Year;
 
     /// Which date is this [`Calendar`]'s reference date.
-    /// 
+    ///
     /// The reference date is _day 0_, when the calendar places the "beginning of time", and upon which it
     /// bases its dates.
     fn reference_date() -> Self;
@@ -60,7 +58,4 @@ pub trait Calendar
     fn add_days(&mut self, days: i128);
     /// Return this date as an amount of days passed since the [`reference_date`](Calendar::reference_date).
     fn as_days(&self) -> i128;
-
 }
-
-

@@ -30,7 +30,7 @@ impl Calendar for GregorianDate {
         (self.day / 12) as u8
     }
 
-    fn start_date() -> Self {
+    fn reference_date() -> Self {
         Self { year: 0, day: 0 }
     }
     fn add_days(&mut self, days: i128) {
@@ -38,7 +38,7 @@ impl Calendar for GregorianDate {
         self.day += (days % 365) as u16;
     }
 
-    fn as_days(&mut self) -> i128 {
+    fn as_days(&self) -> i128 {
         self.year * 365 + self.day as i128
     }
 }

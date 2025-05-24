@@ -7,6 +7,13 @@ pub struct GregorianDate {
     day: u16,
 }
 
+impl GregorianDate {
+    // TODO: implement
+    pub fn new(year: i128, month: u8, day: u8) -> Result<Self, ()> {
+        Err(())
+    }
+}
+
 impl Calendar for GregorianDate {
     type Day = u16;
     type Month = u8;
@@ -58,6 +65,10 @@ impl Calendar for GregorianDate {
     ///
     /// In the [Gregorian Calendar](https://en.wikipedia.org/wiki/Gregorian_calendar), a leap year happens in all years that
     /// are divisible by 4, except by those that are divisible by 100, except in turn those that are divisible by 400.
+    ///
+    /// ```
+    ///
+    /// ```
     fn is_leap_year(&self) -> bool {
         self.year % 4 == 0 && !(self.year % 100 == 0 && !(self.year % 400 == 0))
     }

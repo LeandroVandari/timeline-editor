@@ -1,7 +1,6 @@
 use crate::StandardCalendar;
 use crate::calendar::Calendar;
 
-
 /// A date in the [Gregorian Calendar](https://en.wikipedia.org/wiki/Gregorian_calendar).
 pub struct GregorianDate {
     year: i128,
@@ -40,7 +39,7 @@ impl Calendar for GregorianDate {
     }
 
     fn reference_date() -> Self {
-        Self { year: 1, day: 0}
+        Self { year: 1, day: 0 }
     }
     fn add_days(&mut self, days: i128) {
         // TODO: fix
@@ -54,9 +53,9 @@ impl Calendar for GregorianDate {
     }
 
     /// Returns whether the date is a leap year.
-    /// 
+    ///
     /// Leap years represent added days to the year, in order to mantain sync with Earth's rotation.
-    /// 
+    ///
     /// In the [Gregorian Calendar](https://en.wikipedia.org/wiki/Gregorian_calendar), a leap year happens in all years that
     /// are divisible by 4, except by those that are divisible by 100, except in turn those that are divisible by 400.
     fn is_leap_year(&self) -> bool {

@@ -60,7 +60,7 @@ pub trait Calendar {
     fn as_days(&self) -> i128;
 
     /// Returns whether the date is a leap year.
-    /// 
+    ///
     /// Leap years represent added days to the year, in order to mantain sync with Earth's rotation.
     fn is_leap_year(&self) -> bool;
 }

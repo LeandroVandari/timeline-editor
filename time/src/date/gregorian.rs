@@ -3,13 +3,13 @@ use crate::calendar::Calendar;
 
 /// A date in the [Gregorian Calendar](https://en.wikipedia.org/wiki/Gregorian_calendar).
 #[derive(Debug)]
-pub struct GregorianDate {
+pub struct Date {
     year: i128,
-    month: u8,
+    month: Month,
     day: u8
 }
 
-impl GregorianDate {
+impl Date {
     
     const REG_DAYS_IN_MONTH: [<Self as Calendar>::Day; 12] = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     const LEAP_DAYS_IN_MONTH: [<Self as Calendar>::Day; 12] = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -17,39 +17,35 @@ impl GregorianDate {
     /// 
     /// # Examples
     /// ```
-    /// use time::{Calendar, date::GregorianDate};
+    /// use time::{Calendar, date::gregorian::{Date, Month}};
     /// 
-    /// let my_birthday = GregorianDate::from_parts(2008, 04, 22);
+    /// let my_birthday = Date::from_parts(2008, Month::April, 22);
     /// assert!(my_birthday.is_ok());
     /// let my_birthday = my_birthday.unwrap();
     /// assert_eq!(my_birthday.year(), 2008);
-    /// assert_eq!(my_birthday.month(), 04);
+    /// assert_eq!(my_birthday.month(), Month::April);
     /// assert_eq!(my_birthday.day(), 22);
     /// 
     /// // Leap year :)
-    /// assert!(GregorianDate::from_parts(2020, 02, 29).is_ok());
+    /// assert!(Date::from_parts(2020, Month::February, 29).is_ok());
     /// // Error: Not a leap year
-    /// assert!(GregorianDate::from_parts(1900, 02, 29).is_err());
+    /// assert!(Date::from_parts(1900, Month::February, 29).is_err());
     /// // Leap year, because it's divisible by 400 ;)
-    /// assert!(GregorianDate::from_parts(2000, 02, 29).is_ok());
+    /// assert!(Date::from_parts(2000, Month::February, 29).is_ok());
     /// ```
     pub fn from_parts(
         year: i128,
         month: <Self as Calendar>::Month,
         day: <Self as Calendar>::Day,
     ) -> Result<Self, errors::DateCreationError> {
-        if !(1..=12).contains(&month) {
-            return Err(errors::DateCreationError::InvalidMonth(month));
-        }
-        dbg!(Self::is_leap_year(year));
         // convert to the appropriate list indices
-        let month = month - 1;
         let days_in_month = if Self::is_leap_year(year) {
             Self::LEAP_DAYS_IN_MONTH
         } else {Self::REG_DAYS_IN_MONTH};
 
-        if !(0..days_in_month[month as usize])
-            .contains(&(day-1))
+        // Subtract one because the list is 0-indexed.
+        if !(1..=days_in_month[month as usize - 1])
+            .contains(&day)
         {
             return Err(errors::DateCreationError::InvalidDay(day));
         }
@@ -58,8 +54,8 @@ impl GregorianDate {
     }
 }
 
-impl From<&GregorianDate> for StandardCalendar {
-    fn from(date: &GregorianDate) -> Self {
+impl From<&Date> for StandardCalendar {
+    fn from(date: &Date) -> Self {
         // TODO: fix
         StandardCalendar {
             days: date.year * 365 + date.day as i128,
@@ -67,20 +63,20 @@ impl From<&GregorianDate> for StandardCalendar {
     }
 }
 
-impl From<StandardCalendar> for GregorianDate {
+impl From<StandardCalendar> for Date {
     fn from(standard: StandardCalendar) -> Self {
         // TODO: fix
         Self {
             year: standard.days / 365,
-            month: ((standard.days % 365) % 12) as u8,
+            month: Month::try_from(((standard.days % 365) / 12) as u8 + 1).unwrap(),
             day: (standard.days % 365) as u8,
         }
     }
 }
 
-impl Calendar for GregorianDate {
+impl Calendar for Date {
     type Day = u8;
-    type Month = u8;
+    type Month = Month;
 
     fn day(&self) -> Self::Day {
         self.day
@@ -91,11 +87,11 @@ impl Calendar for GregorianDate {
     }
 
     fn month(&self) -> Self::Month {
-        self.month + 1
+        self.month
     }
 
     fn reference_date() -> Self {
-        Self { year: 1, month: 0, day: 0 }
+        Self { year: 1, month: Month::January, day: 0 }
     }
     fn add_days(&mut self, days: i128) {
         // TODO: fix
@@ -117,27 +113,66 @@ impl Calendar for GregorianDate {
     ///
     /// # Examples
     /// ```
-    /// # use time::{Calendar, date::GregorianDate};
-    /// assert!(GregorianDate::is_leap_year(2020));
-    /// assert!(GregorianDate::is_leap_year(2000));
+    /// # use time::{Calendar, date::gregorian};
+    /// assert!(gregorian::Date::is_leap_year(2020));
+    /// assert!(gregorian::Date::is_leap_year(2000));
     /// 
-    /// assert!(!GregorianDate::is_leap_year(1900));
-    /// assert!(!GregorianDate::is_leap_year(2017));
-    /// assert!(!GregorianDate::is_leap_year(2018));
+    /// assert!(!gregorian::Date::is_leap_year(1900));
+    /// assert!(!gregorian::Date::is_leap_year(2017));
+    /// assert!(!gregorian::Date::is_leap_year(2018));
     /// ```
     fn is_leap_year(year: crate::Year) -> bool {
         year % 4 == 0 && ((year % 400 == 0) || year % 100 != 0)
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Month {
+    January = 1,
+    February = 2,
+    March = 3,
+    April = 4,
+    May = 5,
+    June = 6,
+    July = 7,
+    August = 8,
+    September = 9,
+    October = 10,
+    November = 11,
+    December = 12
+}
+
+impl TryFrom<u8> for Month {
+    type Error = errors::DateCreationError;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        Ok(match value {
+            1 => Self::January,
+            2 => Self::February,
+            3 => Self::March,
+            4 => Self::April,
+            5 => Self::May,
+            6 => Self::June,
+            7 => Self::July,
+            8 => Self::August,
+            9 => Self::September,
+            10 => Self::October,
+            11 => Self::November,
+            12 => Self::December,
+            other => return Err(errors::DateCreationError::InvalidMonth(other))
+        })
+    }
+}
+
+
+
 mod errors {
     use crate::calendar::Calendar;
 
-    use super::GregorianDate;
+    use super::Date;
 
     #[derive(Debug, Clone, Copy)]
     pub enum DateCreationError {
-        InvalidMonth(<GregorianDate as Calendar>::Month),
-        InvalidDay(<GregorianDate as Calendar>::Day),
+        InvalidMonth(u8),
+        InvalidDay(<Date as Calendar>::Day),
     }
 }

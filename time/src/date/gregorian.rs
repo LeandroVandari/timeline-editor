@@ -61,9 +61,7 @@ impl Date {
 impl From<&Date> for StandardCalendar {
     fn from(date: &Date) -> Self {
         // TODO: fix
-        StandardCalendar {
-            days: todo!()
-        }
+        StandardCalendar { days: todo!() }
     }
 }
 
@@ -124,18 +122,17 @@ impl Calendar for Date {
     }
 }
 
-
 /// Representation of a year for the [Gregorian Calendar](https://en.wikipedia.org/wiki/Gregorian_calendar).
-/// 
+///
 /// For creation with variables, use [`Year::new`]. For creation with literals, use the [`year`] macro.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Year(std::num::NonZeroI128);
 
 impl Year {
     /// Constructor for [`Year`].
-    /// 
+    ///
     /// Simply wraps the given `year` and returns a new [`Year`].
-    /// 
+    ///
     /// # Examples
     /// ```
     /// # use std::num::NonZeroI128;
@@ -147,7 +144,7 @@ impl Year {
     }
 
     /// Returns whether this is a leap year.
-    /// 
+    ///
     /// In the [Gregorian Calendar](https://en.wikipedia.org/wiki/Gregorian_calendar), a leap year happens in all years that
     /// are divisible by 4, except by those that are divisible by 100, except in turn those that are divisible by 400.
     ///
@@ -177,14 +174,14 @@ impl TryFrom<i128> for Year {
 }
 
 /// Macro for creating a [`Year`] from a literal.
-/// 
+///
 /// Saves from having to create a [`NonZeroI128`] or using the fallible [`TryFrom`] implementation.
-/// 
+///
 /// # Examples
 /// ```
 /// // Works!
 /// use time::date::gregorian;
-/// 
+///
 /// assert_eq!(gregorian::year!(1), gregorian::Year::try_from(1).unwrap());
 /// assert_eq!(gregorian::year!(2020), gregorian::Year::try_from(2020).unwrap());
 /// assert_eq!(gregorian::year!(1528), gregorian::Year::try_from(1528).unwrap());

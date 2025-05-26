@@ -31,13 +31,18 @@ pub trait Calendar: ConvertCalendar {
     ///
     /// Usually, a [`u8`] is enough to represent the amount of dates in a month.
     type Day;
+    /// How this calendar expresses its years.
+    ///
+    /// Usually, as the year is the biggest unit in a date, you want to have this be able to be as large as possible,
+    /// in order to allow for a big range of representable dates.
+    type Year;
 
     /// Which day it is in the month in the date contained by this calendar.
     fn day(&self) -> Self::Day;
     /// Which month it is in the year in the date contained by this calendar.
     fn month(&self) -> Self::Month;
     /// Which year it is in the date contained by this calendar.
-    fn year(&self) -> super::Year;
+    fn year(&self) -> Self::Year;
 
     /// Which date is this [`Calendar`]'s reference date.
     ///
@@ -53,7 +58,7 @@ pub trait Calendar: ConvertCalendar {
     /// Returns whether the date is a leap year.
     ///
     /// Leap years represent added days to the year, in order to mantain sync with Earth's rotation.
-    fn is_leap_year(year: crate::Year) -> bool;
+    fn is_leap_year(year: Self::Year) -> bool;
 }
 
 pub trait ConvertCalendar {

@@ -1,31 +1,34 @@
+use std::num::{NonZero, NonZeroI128};
+
 use crate::StandardCalendar;
 use crate::calendar::Calendar;
 
 /// A date in the [Gregorian Calendar](https://en.wikipedia.org/wiki/Gregorian_calendar).
 #[derive(Debug)]
 pub struct Date {
-    year: i128,
+    year: Year,
     month: Month,
-    day: u8
+    day: u8,
 }
 
 impl Date {
-    
-    const REG_DAYS_IN_MONTH: [<Self as Calendar>::Day; 12] = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    const LEAP_DAYS_IN_MONTH: [<Self as Calendar>::Day; 12] = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    const REG_DAYS_IN_MONTH: [<Self as Calendar>::Day; 12] =
+        [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    const LEAP_DAYS_IN_MONTH: [<Self as Calendar>::Day; 12] =
+        [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     /// Creates a date in the Gregorian Calendar from the day, month and year.
-    /// 
+    ///
     /// # Examples
     /// ```
     /// use time::{Calendar, date::gregorian::{Date, Month}};
-    /// 
+    ///
     /// let my_birthday = Date::from_parts(2008, Month::April, 22);
     /// assert!(my_birthday.is_ok());
     /// let my_birthday = my_birthday.unwrap();
     /// assert_eq!(my_birthday.year(), 2008);
     /// assert_eq!(my_birthday.month(), Month::April);
     /// assert_eq!(my_birthday.day(), 22);
-    /// 
+    ///
     /// // Leap year :)
     /// assert!(Date::from_parts(2020, Month::February, 29).is_ok());
     /// // Error: Not a leap year
@@ -34,19 +37,19 @@ impl Date {
     /// assert!(Date::from_parts(2000, Month::February, 29).is_ok());
     /// ```
     pub fn from_parts(
-        year: i128,
+        year: Year,
         month: <Self as Calendar>::Month,
         day: <Self as Calendar>::Day,
     ) -> Result<Self, errors::DateCreationError> {
         // convert to the appropriate list indices
         let days_in_month = if Self::is_leap_year(year) {
             Self::LEAP_DAYS_IN_MONTH
-        } else {Self::REG_DAYS_IN_MONTH};
+        } else {
+            Self::REG_DAYS_IN_MONTH
+        };
 
         // Subtract one because the list is 0-indexed.
-        if !(1..=days_in_month[month as usize - 1])
-            .contains(&day)
-        {
+        if !(1..=days_in_month[month as usize - 1]).contains(&day) {
             return Err(errors::DateCreationError::InvalidDay(day));
         }
 
@@ -77,12 +80,13 @@ impl From<StandardCalendar> for Date {
 impl Calendar for Date {
     type Day = u8;
     type Month = Month;
+    type Year = Year;
 
     fn day(&self) -> Self::Day {
         self.day
     }
 
-    fn year(&self) -> crate::Year {
+    fn year(&self) -> Self::Year {
         self.year
     }
 
@@ -91,7 +95,11 @@ impl Calendar for Date {
     }
 
     fn reference_date() -> Self {
-        Self { year: 1, month: Month::January, day: 0 }
+        Self {
+            year: 1,
+            month: Month::January,
+            day: 0,
+        }
     }
     fn add_days(&mut self, days: i128) {
         // TODO: fix
@@ -116,13 +124,29 @@ impl Calendar for Date {
     /// # use time::{Calendar, date::gregorian};
     /// assert!(gregorian::Date::is_leap_year(2020));
     /// assert!(gregorian::Date::is_leap_year(2000));
-    /// 
+    ///
     /// assert!(!gregorian::Date::is_leap_year(1900));
     /// assert!(!gregorian::Date::is_leap_year(2017));
     /// assert!(!gregorian::Date::is_leap_year(2018));
     /// ```
-    fn is_leap_year(year: crate::Year) -> bool {
+    fn is_leap_year(year: Self::Year) -> bool {
         year % 4 == 0 && ((year % 400 == 0) || year % 100 != 0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Year(std::num::NonZeroI128);
+
+impl Year {
+    pub fn new(year: std::num::NonZeroI128) -> Self {
+        Self(year)
+    }
+}
+
+impl<T> std::ops::Add<NonZero<T: std::num::ZeroablePrimitive>> for Year {
+    type Output = Year;
+    fn add(self, rhs: NonZero<T: std::num::ZeroablePrimitive>) -> Self::Output {
+        self
     }
 }
 
@@ -139,7 +163,7 @@ pub enum Month {
     September = 9,
     October = 10,
     November = 11,
-    December = 12
+    December = 12,
 }
 
 impl TryFrom<u8> for Month {
@@ -158,12 +182,10 @@ impl TryFrom<u8> for Month {
             10 => Self::October,
             11 => Self::November,
             12 => Self::December,
-            other => return Err(errors::DateCreationError::InvalidMonth(other))
+            other => return Err(errors::DateCreationError::InvalidMonth(other)),
         })
     }
 }
-
-
 
 mod errors {
     use crate::calendar::Calendar;

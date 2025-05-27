@@ -196,6 +196,7 @@ impl TryFrom<i128> for Year {
 /// # use time::date::gregorian;
 /// gregorian::year!("hi");
 /// ```
+#[doc(hidden)]
 #[macro_export]
 macro_rules! year {
     (0) => {
@@ -207,6 +208,7 @@ macro_rules! year {
         }
     };
 }
+#[doc(inline)]
 pub use year;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

@@ -55,6 +55,21 @@ pub trait Calendar: ConvertCalendar {
     /// Return this date as an amount of days passed since the [`reference_date`](Calendar::reference_date).
     fn as_days(&self) -> i128;
 
+    /// Returns the amount of days between `first` and `second`.
+    /// 
+    /// Start inclusive, end exclusive.
+    fn days_between(first: &Self, second: &Self) -> i128;
+
+    /// Returns the amount of days passed since `other`.
+    /// 
+    /// Equivalent to
+    /// ```rs
+    /// Self::days_between(other, &self);
+    /// ```
+    fn days_since(&self, other: &Self) -> i128 {
+        Self::days_between(other, self)
+    }
+
     /// Returns whether the date is a leap year.
     ///
     /// Leap years represent added days to the year, in order to mantain sync with Earth's rotation.

@@ -113,6 +113,10 @@ impl Calendar for Date {
         //self.year * 365 + self.day as i128
     }
 
+    fn days_between(first: &Self, second: &Self) -> i128 {
+        todo!()
+    }
+
     /// Returns whether the date is a leap year.
     ///
     /// Leap years represent added days to the year, in order to mantain sync with Earth's rotation.

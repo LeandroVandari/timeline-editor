@@ -56,12 +56,12 @@ pub trait Calendar: ConvertCalendar {
     fn as_days(&self) -> i128;
 
     /// Returns the amount of days between `first` and `second`.
-    /// 
+    ///
     /// Start inclusive, end exclusive.
     fn days_between(first: &Self, second: &Self) -> i128;
 
     /// Returns the amount of days passed since `other`.
-    /// 
+    ///
     /// Equivalent to
     /// ```rs
     /// Self::days_between(other, &self);

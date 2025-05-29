@@ -1,10 +1,11 @@
 use std::num::NonZeroI128;
+use std::ops::{Range, Sub};
 
 use crate::StandardCalendar;
 use crate::calendar::Calendar;
 
 /// A date in the [Gregorian Calendar](https://en.wikipedia.org/wiki/Gregorian_calendar).
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Date {
     year: Year,
     month: Month,
@@ -55,6 +56,29 @@ impl Date {
         }
 
         Ok(Self { year, day, month })
+    }
+
+    fn leap_days_between(first: &Self, second: &Self) -> usize {
+        let (first, second) = if first > second {
+            (second, first)
+        } else {
+            (first, second)
+        };
+
+        // Doesn't include either `first` or `second`
+        let leap_years = ((first.year.0.get() + 1)..second.year.0.get())
+            .filter(|year| Self::is_leap_year(Year::try_from(*year).unwrap()))
+            .count();
+
+        let mut leap_days = leap_years;
+        if first.month <= Month::February && Self::is_leap_year(first.year) {
+            leap_days += 1;
+        }
+        if second.month > Month::February && Self::is_leap_year(second.year) {
+            leap_days += 1;
+        }
+
+        leap_days
     }
 }
 
@@ -114,6 +138,32 @@ impl Calendar for Date {
     }
 
     fn days_between(first: &Self, second: &Self) -> i128 {
+        let (first, second) = if first > second {
+            (second, first)
+        } else {
+            (first, second)
+        };
+
+        let days_in_month = if Self::is_leap_year(second.year) {
+            Self::LEAP_DAYS_IN_MONTH
+        } else {
+            Self::REG_DAYS_IN_MONTH
+        };
+        let days_last_year: u8 = days_in_month
+            .iter()
+            .take(second.month as usize - 1)
+            .sum::<u8>()
+            + second.day;
+
+        // remember: includes leap days in first and second (FUCK)
+        let leap_days = Self::leap_days_between(first, second);
+
+        let days_other_years = if first.year - second.year > 1 {
+            (first.year - second.year - 1) * 365 + leap_days as i128
+        } else {
+            0
+        };
+
         todo!()
     }
 
@@ -123,6 +173,26 @@ impl Calendar for Date {
     /// For more information on how leap years are checked, read [`Year::is_leap_year`].
     fn is_leap_year(year: Self::Year) -> bool {
         year.is_leap_year()
+    }
+}
+
+impl PartialOrd for Date {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Date {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.year.cmp(&other.year) {
+            std::cmp::Ordering::Equal => {}
+            order => return order,
+        }
+        match self.month.cmp(&other.month) {
+            std::cmp::Ordering::Equal => {}
+            order => return order,
+        }
+        self.day.cmp(&other.day)
     }
 }
 
@@ -167,6 +237,26 @@ impl Year {
         let inner = self.0.get();
         inner % 4 == 0 && ((inner % 400 == 0) || inner % 100 != 0)
     }
+
+    /// Returns the difference between the years.
+    ///
+    /// That is, how many [Year]s 'apart' they are. Is equivalent to `self - other`, but more idiomatic.
+    ///
+    /// Since there is no _year 0_, this is **not** equivalent to `i128 - i128`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use time::date::gregorian::year;
+    /// assert_eq!(year!(1528).difference(year!(1528)), 0);
+    /// assert_eq!(year!(1528).difference(year!(1527)), 1);
+    ///
+    /// // Edge cases: no year 0!
+    /// assert_eq!(year!(1).difference(year!(-1)), 1);
+    /// assert_eq!(year!(-1).difference(year!(1)), -1);
+    /// ```
+    pub fn difference(self, other: Year) -> i128 {
+        self - other
+    }
 }
 
 impl TryFrom<i128> for Year {
@@ -174,6 +264,25 @@ impl TryFrom<i128> for Year {
     fn try_from(year: i128) -> Result<Self, Self::Error> {
         let year = NonZeroI128::new(year).ok_or(std::num::IntErrorKind::Zero)?;
         Ok(Year::new(year))
+    }
+}
+
+impl Sub<Year> for Year {
+    type Output = i128;
+    /// A subtraction between years is handled as the difference between them.
+    ///
+    /// As the intention of a subtraction isn't immediately clear, prefer to use the
+    /// [Year::difference] method.
+    fn sub(self, rhs: Year) -> Self::Output {
+        let (this, other) = (self.0.get(), rhs.0.get());
+        let diff = this - other;
+        // This is needed because an year 0 doesn't exist, so we need to correct the subtraction.
+        if self.0.is_positive() && rhs.0.is_negative() {
+            return diff - 1;
+        } else if self.0.is_negative() && rhs.0.is_positive() {
+            return diff + 1;
+        }
+        diff
     }
 }
 
@@ -189,6 +298,7 @@ impl TryFrom<i128> for Year {
 /// assert_eq!(gregorian::year!(1), gregorian::Year::try_from(1).unwrap());
 /// assert_eq!(gregorian::year!(2020), gregorian::Year::try_from(2020).unwrap());
 /// assert_eq!(gregorian::year!(1528), gregorian::Year::try_from(1528).unwrap());
+/// assert_eq!(gregorian::year!(-1), gregorian::Year::try_from(-1).unwrap()); // Works with negative years too!
 /// ```
 /// Will not compile if the given year is 0.
 /// ```compile_fail

@@ -238,25 +238,6 @@ impl Year {
         inner % 4 == 0 && ((inner % 400 == 0) || inner % 100 != 0)
     }
 
-    /// Returns the difference between the years.
-    ///
-    /// That is, how many [Year]s 'apart' they are. Is equivalent to `self - other`, but more idiomatic.
-    ///
-    /// Since there is no _year 0_, this is **not** equivalent to `i128 - i128`.
-    ///
-    /// # Examples
-    /// ```
-    /// # use time::date::gregorian::year;
-    /// assert_eq!(year!(1528).difference(year!(1528)), 0);
-    /// assert_eq!(year!(1528).difference(year!(1527)), 1);
-    ///
-    /// // Edge cases: no year 0!
-    /// assert_eq!(year!(1).difference(year!(-1)), 1);
-    /// assert_eq!(year!(-1).difference(year!(1)), -1);
-    /// ```
-    pub fn difference(self, other: Year) -> i128 {
-        self - other
-    }
 }
 
 impl TryFrom<i128> for Year {
@@ -271,8 +252,19 @@ impl Sub<Year> for Year {
     type Output = i128;
     /// A subtraction between years is handled as the difference between them.
     ///
-    /// As the intention of a subtraction isn't immediately clear, prefer to use the
-    /// [Year::difference] method.
+    /// That is, how many [Year]s 'apart' they are.
+    ///
+    /// Since there is no _year 0_, this is **not** equivalent to `i128 - i128`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use time::date::gregorian::year;
+    /// assert_eq!(year!(1528) - year!(1528), 0);
+    /// assert_eq!(year!(1528) - year!(1527), 1);
+    ///
+    /// // Edge cases: no year 0!
+    /// assert_eq!(year!(1) - year!(-1), 1);
+    /// assert_eq!(year!(-1) -year!(1), -1);
     fn sub(self, rhs: Year) -> Self::Output {
         let (this, other) = (self.0.get(), rhs.0.get());
         let diff = this - other;

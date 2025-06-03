@@ -1,5 +1,6 @@
 use std::num::NonZeroI128;
-use std::ops::{Range, Sub};
+use std::ops::{Index, Range, Sub};
+use std::u128;
 
 use crate::StandardCalendar;
 use crate::calendar::Calendar;
@@ -56,6 +57,14 @@ impl Date {
         }
 
         Ok(Self { year, day, month })
+    }
+
+    pub fn from_year(year: Year) -> Self {
+        Self {
+            year,
+            month: Month::January,
+            day: 1,
+        }
     }
 
     fn leap_days_between(first: &Self, second: &Self) -> usize {
@@ -137,34 +146,81 @@ impl Calendar for Date {
         //self.year * 365 + self.day as i128
     }
 
+    /// Returns the amount of days between `first` and `second`.
+    ///
+    /// # Examples
+    /// ```
+    /// use time::date::gregorian::{Date, Month, year};
+    /// use time::calendar::Calendar;
+    ///
+    /// // Equal dates are 0 days apart.
+    /// assert_eq!(Date::days_between(&Date::from_parts(year!(1), Month::January, 1).unwrap(), &Date::from_parts(year!(1), Month::January, 1).unwrap()), 0);
+    /// assert_eq!(Date::days_between(&Date::from_parts(year!(1), Month::January, 2).unwrap(), &Date::from_parts(year!(1), Month::January, 1).unwrap()), 1);
+    ///
+    /// //assert_eq!(Date::days_between(&Date::from_parts(year!(2), Month::January, 1).unwrap(), &Date::from_parts(year!(1), Month::January, 1).unwrap()), 365);
+    /// ```
     fn days_between(first: &Self, second: &Self) -> i128 {
         let (first, second) = if first > second {
             (second, first)
         } else {
             (first, second)
         };
+        // If they're in the same year, we just calculate the days between.
+        if first.year == second.year {
+            let days_in_month = if Self::is_leap_year(first.year) {
+                Self::LEAP_DAYS_IN_MONTH
+            } else {
+                Self::REG_DAYS_IN_MONTH
+            };
 
-        let days_in_month = if Self::is_leap_year(second.year) {
+            return days_in_month[first.month as usize..second.month as usize]
+                .iter()
+                .map(|i| *i as u16)
+                .sum::<u16>() as i128
+                + second.day as i128
+                - first.day as i128;
+        }
+
+        let days_in_month_second = if Self::is_leap_year(second.year) {
             Self::LEAP_DAYS_IN_MONTH
         } else {
             Self::REG_DAYS_IN_MONTH
         };
-        let days_last_year: u8 = days_in_month
+        // How many days from Jan 1st we are on the second year.
+        let days_last_year: u16 = days_in_month_second
             .iter()
             .take(second.month as usize - 1)
-            .sum::<u8>()
-            + second.day;
+            .map(|i| *i as u16)
+            .sum::<u16>()
+            + second.day as u16
+            - 1;
 
-        // remember: includes leap days in first and second (FUCK)
-        let leap_days = Self::leap_days_between(first, second);
+        let days_in_month_first = if Self::is_leap_year(first.year) {
+            Self::LEAP_DAYS_IN_MONTH
+        } else {
+            Self::REG_DAYS_IN_MONTH
+        };
+        // How many days until Jan 1st of the year after first.
+        let days_first_year = days_in_month_first
+            .get((first.month as usize)..)
+            .map_or(0, |months| months.iter().map(|i| *i as u16).sum())
+            + days_in_month_first[first.month as usize] as u16
+            + first.day as u16
+            + 1;
+
+        let leap_days = Self::leap_days_between(
+            &Date::from_year(first.year.next()),
+            &Date::from_year(second.year),
+        );
 
         let days_other_years = if first.year - second.year > 1 {
             (first.year - second.year - 1) * 365 + leap_days as i128
         } else {
             0
         };
+        dbg!(days_other_years, days_first_year, days_last_year);
 
-        todo!()
+        days_other_years + days_first_year as i128 + days_last_year as i128
     }
 
     /// Returns whether the date is a leap year.
@@ -238,6 +294,15 @@ impl Year {
         inner % 4 == 0 && ((inner % 400 == 0) || inner % 100 != 0)
     }
 
+    pub fn next(self) -> Self {
+        match self.0.get() {
+            -1 => {
+                year!(1)
+            }
+            // Safety: We already handled the case where the year + 1 would be 0.
+            other => unsafe { Self(NonZeroI128::new_unchecked(other + 1)) },
+        }
+    }
 }
 
 impl TryFrom<i128> for Year {

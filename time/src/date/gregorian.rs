@@ -92,9 +92,15 @@ impl Date {
 }
 
 impl From<&Date> for StandardCalendar {
+    // The standard calendar has day 0 set as the GregorianCalendar's 1/1/1
     fn from(date: &Date) -> Self {
-        // TODO: fix
-        StandardCalendar { days: todo!() }
+        let between = Date::days_between(&Date::reference_date(), date);
+        let diff = if &Date::reference_date() < date {
+            between
+        } else {
+            -between
+        };
+        StandardCalendar::new(diff)
     }
 }
 
@@ -130,7 +136,7 @@ impl Calendar for Date {
         Self {
             year: year!(1),
             month: Month::January,
-            day: 0,
+            day: 1,
         }
     }
     fn add_days(&mut self, days: i128) {
@@ -157,7 +163,7 @@ impl Calendar for Date {
     /// assert_eq!(Date::days_between(&Date::from_parts(year!(1), Month::January, 1).unwrap(), &Date::from_parts(year!(1), Month::January, 1).unwrap()), 0);
     /// assert_eq!(Date::days_between(&Date::from_parts(year!(1), Month::January, 2).unwrap(), &Date::from_parts(year!(1), Month::January, 1).unwrap()), 1);
     ///
-    /// //assert_eq!(Date::days_between(&Date::from_parts(year!(2), Month::January, 1).unwrap(), &Date::from_parts(year!(1), Month::January, 1).unwrap()), 365);
+    /// assert_eq!(Date::days_between(&Date::from_parts(year!(2), Month::January, 1).unwrap(), &Date::from_parts(year!(1), Month::January, 1).unwrap()), 365);
     /// ```
     fn days_between(first: &Self, second: &Self) -> i128 {
         let (first, second) = if first > second {
@@ -189,7 +195,7 @@ impl Calendar for Date {
         // How many days from Jan 1st we are on the second year.
         let days_last_year: u16 = days_in_month_second
             .iter()
-            .take(second.month as usize - 1)
+            .take(second.month as usize - 1) // Month as usize -> starts from 1, so this will never panic.
             .map(|i| *i as u16)
             .sum::<u16>()
             + second.day as u16
@@ -202,24 +208,22 @@ impl Calendar for Date {
         };
         // How many days until Jan 1st of the year after first.
         let days_first_year = days_in_month_first
+            // Month as usize starts from 1, so by not subtracting 1, we start from the month after
             .get((first.month as usize)..)
             .map_or(0, |months| months.iter().map(|i| *i as u16).sum())
-            + days_in_month_first[first.month as usize] as u16
-            + first.day as u16
+            + days_in_month_first[first.month as usize - 1] as u16 // Sub 1 to get the actual month in 0 indexing
+            - first.day as u16
             + 1;
 
         let leap_days = Self::leap_days_between(
             &Date::from_year(first.year.next()),
             &Date::from_year(second.year),
         );
-
-        let days_other_years = if first.year - second.year > 1 {
-            (first.year - second.year - 1) * 365 + leap_days as i128
+        let days_other_years = if second.year - first.year > 1 {
+            (second.year - first.year - 1) * 365 + leap_days as i128
         } else {
             0
         };
-        dbg!(days_other_years, days_first_year, days_last_year);
-
         days_other_years + days_first_year as i128 + days_last_year as i128
     }
 
@@ -428,5 +432,72 @@ mod errors {
     pub enum DateCreationError {
         InvalidMonth(u8),
         InvalidDay(<Date as Calendar>::Day),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        Calendar, StandardCalendar,
+        date::gregorian::{Date, Month},
+    };
+
+    use super::errors::DateCreationError;
+
+    #[test]
+    fn days_between() -> Result<(), DateCreationError> {
+        // Months
+        assert_eq!(
+            Date::days_between(
+                &Date::reference_date(),
+                &Date::from_parts(year!(2), Month::February, 1)?
+            ),
+            396
+        );
+
+        // With leap year in between
+        assert_eq!(
+            Date::days_between(
+                &Date::from_parts(year!(2020), Month::February, 22)?,
+                &Date::from_parts(year!(2021), Month::March, 22)?
+            ),
+            394
+        );
+
+        // With years in between
+        assert_eq!(
+            Date::days_between(
+                &Date::from_parts(year!(2019), Month::February, 22)?,
+                &Date::from_parts(year!(2021), Month::March, 22)?
+            ),
+            394 + 365
+        );
+
+        // Negative Years
+        assert_eq!(
+            Date::days_between(
+                &Date::reference_date(),
+                &Date::from_parts(year!(-1), Month::December, 31)?
+            ),
+            1
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn into_standard_calendar() -> Result<(), DateCreationError> {
+        // Day 0
+        assert_eq!(
+            StandardCalendar::from(&Date::from_parts(year!(1), Month::January, 1)?),
+            StandardCalendar::new(0)
+        );
+
+        assert_eq!(
+            StandardCalendar::from(&Date::from_parts(year!(-1), Month::December, 31)?),
+            StandardCalendar::new(-1)
+        );
+
+        Ok(())
     }
 }

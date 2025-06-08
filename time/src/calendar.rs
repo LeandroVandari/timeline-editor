@@ -5,7 +5,7 @@
 /// The date chosen as _day 0_ was January 1st of year 1 in the [Gregorian Calendar](https://en.wikipedia.org/wiki/Gregorian_calendar).
 /// This choice was made because the Gregorian Calendar is the most widely used worldwide,
 /// and thus making conversions to and from that as cheap as possible makes sense.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StandardCalendar {
     /// How many days have passed since 01/01/01 (in the [Gregorian Calendar](https://en.wikipedia.org/wiki/Gregorian_calendar)).
     pub days: i128,
